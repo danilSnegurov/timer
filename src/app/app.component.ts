@@ -1,6 +1,6 @@
-import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
-import { timer, BehaviorSubject, Subject } from 'rxjs';
-import { takeUntil, map, withLatestFrom, filter, takeWhile, tap, exhaustMap } from 'rxjs/operators';
+import { Component, OnInit, ChangeDetectionStrategy, ViewChild, ElementRef } from '@angular/core';
+import { timer, BehaviorSubject, Subject, fromEvent } from 'rxjs';
+import { takeUntil, map, withLatestFrom, filter, exhaustMap, debounceTime, buffer } from 'rxjs/operators';
 
 @Component({
   selector: 'app-root',
@@ -14,8 +14,26 @@ export class AppComponent implements OnInit {
   private onStop$ = new Subject<boolean>();
   private onStart$ = new Subject<boolean>();
 
+  @ViewChild("onWait")
+  waitButton: ElementRef;
+
   ngOnInit(): void {
     this.initTimer();
+    const mouse$ = fromEvent(this.waitButton._elementRef.nativeElement, 'click');
+    const buff$ = mouse$.pipe(
+      debounceTime(300),
+    )
+    const click$ = mouse$.pipe(
+      buffer(buff$),
+      map(list => {
+        return list.length;
+      }),
+      filter(x => x === 2),
+    )
+    
+    click$.subscribe(() => {
+      this.onStop$.next();
+    })
   }
 
   public onStart(): void {
